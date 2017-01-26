@@ -13,6 +13,17 @@ parameters:
     ezpublish.user.identity_definer.role_id.class: eZ\Publish\Core\MVC\Symfony\Security\User\ContextProvider\RoleContextProvider
 
 services:
+    security.authentication.provider.dao:
+        class: "%security.authentication.provider.dao.class%"
+        public: false
+        abstract: true
+        arguments: [~, ~, ~, '@security.encoder_factory', '%security.authentication.hide_user_not_found%']
+
+    security.authentication.provider.anonymous:
+        class: "%security.authentication.provider.anonymous.class%"
+        public: false
+        arguments: [~]
+
     ezpublish.security.user_provider:
         class: "%ezpublish.security.user_provider.class%"
         arguments: ["@ezpublish.api.repository"]

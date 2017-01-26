@@ -26,6 +26,30 @@ parameters:
     ezpublish.route_reference.listener.content_download.class: eZ\Bundle\EzPublishCoreBundle\EventListener\ContentDownloadRouteReferenceListener
 
 services:
+    router.default:
+        class: "%router.class%"
+        public: false
+        arguments:
+            - "@service_container"
+            - "%router.resource%"
+            -
+                cache_dir: "%kernel.cache_dir%"
+                debug: "%kernel.debug%"
+                generator_class: "%router.options.generator_class%"
+                generator_base_class: "%router.options.generator_base_class%"
+                generator_dumper_class: "%router.options.generator_dumper_class%"
+                generator_cache_class: "%router.options.generator.cache_class%"
+                matcher_class: "%router.options.matcher_class%"
+                matcher_base_class: "%router.options.matcher_base_class%"
+                matcher_dumper_class: "%router.options.matcher_dumper_class%"
+                matcher_cache_class: "%router.options.matcher.cache_class%"
+            - "@?router.request_context"
+            - "@?logger"
+        calls:
+            - [setConfigCacheFactory, ["@config_cache_factory"]]
+        tags:
+            - { name: monolog.logger, channel: router }
+
     ezpublish.chain_router:
         class: "%ezpublish.chain_router.class%"
         arguments: ["@?logger"]
