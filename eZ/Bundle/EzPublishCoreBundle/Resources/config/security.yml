@@ -24,6 +24,17 @@ services:
         public: false
         arguments: [~]
 
+    security.http_utils:
+        class: "%security.http_utils.class%"
+        public: false
+        arguments: ["@?router", "@?router"]
+
+    security.authentication.success_handler:
+        class: "%security.authentication.success_handler.class%"
+        abstract: true
+        public: false
+        arguments: ["@security.http_utils", []]
+
     ezpublish.security.user_provider:
         class: "%ezpublish.security.user_provider.class%"
         arguments: ["@ezpublish.api.repository"]

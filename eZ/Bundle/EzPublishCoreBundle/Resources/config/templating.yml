@@ -52,6 +52,16 @@ services:
         tags:
             - {name: twig.extension}
 
+    assetic.asset_factory:
+        class: "%assetic.asset_factory.class%"
+        public: false
+        arguments:
+            - "@kernel"
+            - "@service_container"
+            - "@assetic.parameter_bag"
+            - "%assetic.read_from%"
+            - "%assetic.debug"
+
     ezpublish.twig.extension.content:
         class: "%ezpublish.twig.extension.content.class%"
         arguments:
