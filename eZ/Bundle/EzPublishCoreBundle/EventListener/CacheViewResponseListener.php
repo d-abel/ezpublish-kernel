@@ -7,6 +7,8 @@ namespace eZ\Bundle\EzPublishCoreBundle\EventListener;
 use eZ\Publish\API\Repository\Values\Content\Content;
 use eZ\Publish\API\Repository\Values\Content\Location;
 use eZ\Publish\API\Repository\Values\Content\Relation;
+use eZ\Publish\Core\MVC\Symfony\Cache\Http\ResponseCacheConfigurator;
+use eZ\Publish\Core\MVC\Symfony\Cache\Http\ResponseTagger\ResponseTagger;
 use eZ\Publish\Core\MVC\Symfony\View\CachableView;
 use eZ\Publish\Core\MVC\Symfony\View\ContentValueView;
 use eZ\Publish\Core\MVC\Symfony\View\LocationValueView;
@@ -41,11 +43,41 @@ class CacheViewResponseListener implements EventSubscriberInterface
      */
     private $defaultTtl;
 
+    /**
+     * @var \eZ\Publish\Core\MVC\Symfony\Cache\Http\ResponseTagger\ResponseTagger[]
+     */
+    private $taggers = [];
+
+    /**
+     * @var ResponseTagger
+     */
+    private $dispatcherTagger;
+
+    /**
+     * @var ResponseCacheConfigurator
+     */
+    private $responseConfigurator;
+
     public function __construct($enableViewCache, $enableTtlCache, $defaultTtl)
     {
         $this->enableViewCache = $enableViewCache;
         $this->enableTtlCache = $enableTtlCache;
         $this->defaultTtl = $defaultTtl;
+    }
+
+    public function setConfigurator(ResponseCacheConfigurator $configurator)
+    {
+        $this->responseConfigurator = $configurator;
+    }
+
+    public function setDispatcherTagger(ResponseTagger $dispatcherTagger)
+    {
+        $this->dispatcherTagger = $dispatcherTagger;
+    }
+
+    public function addTagger(ResponseTagger $tagger)
+    {
+        $this->taggers[] = $tagger;
     }
 
     public static function getSubscribedEvents()
@@ -64,69 +96,13 @@ class CacheViewResponseListener implements EventSubscriberInterface
         }
 
         $response = $event->getResponse();
+        $this->responseConfigurator->enableCache($response);
 
         // Tag response so it can be invalidated by tag/key.
-        if ($tags = $this->getTags($view)) {
-            $response->headers->set('xkey', $tags, false);
+        $this->dispatcherTagger->tag($this->responseConfigurator, $response, $view);
+
+        if ($this->enableTtlCache) {
+            $this->responseConfigurator->setSharedMaxAge($response, $this->defaultTtl);
         }
-
-        $response->setPublic();
-        if ($this->enableTtlCache && !$response->headers->hasCacheControlDirective('s-maxage')) {
-            $response->setSharedMaxAge($this->defaultTtl);
-        }
-    }
-
-    /**
-     * Generate tags relevant for a given view.
-     *
-     * See doc/specifications/cache/multi_tagging.md
-     *
-     * @param $view
-     *
-     * @return array
-     */
-    private function getTags($view)
-    {
-        if ($view instanceof LocationValueView && ($location = $view->getLocation()) instanceof Location) {
-            $contentInfo = $location->getContentInfo();
-            $tags = [
-                    'content-' . $location->contentId,
-                    'location-' . $location->id,
-                    'parent-' . $location->parentLocationId,
-                    'content-type-' . $contentInfo->contentTypeId,
-            ] + array_map(
-                    function ($pathItem) {
-                        return 'path-' . $pathItem;
-                    },
-                    $location->path
-            );
-
-            if ($location->id != $contentInfo->mainLocationId) {
-                $tags[] = 'location-' . $contentInfo->mainLocationId;
-            }
-        } elseif ($view instanceof ContentValueView && ($content = $view->getContent()) instanceof Content) {
-            $contentInfo = $content->getVersionInfo()->getContentInfo();
-            $tags = [
-                    'content-' . $content->id,
-                    'content-type-' . $contentInfo->contentTypeId,
-            ];
-
-            if ($contentInfo->mainLocationId) {
-                $tags[] = 'location-' . $contentInfo->mainLocationId;
-            }
-        } else {
-            $tags = [];
-        }
-
-        if ($view instanceof RelationView && ($relations = $view->getRelations())) {
-            $tags += array_map(
-                function (Relation $relation) {
-                    return 'relation-' . $relation->getDestinationContentInfo()->id;
-                },
-                $relations
-            );
-        }
-
-        return $tags;
     }
 }

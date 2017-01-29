@@ -1,0 +1,29 @@
+services:
+    ezplatform.http_cache.response_configurator:
+        class: 'eZ\Publish\Core\MVC\Symfony\Cache\Http\ResponseCacheConfigurator'
+
+    ezplatform.http_cache.response_tagger.dispatcher:
+        class: 'eZ\Publish\Core\MVC\Symfony\Cache\Http\ResponseTagger\Delegator\DispatcherTagger'
+        arguments: [~]
+
+    ezplatform.http_cache.response_tagger.content_view:
+        class: 'eZ\Publish\Core\MVC\Symfony\Cache\Http\ResponseTagger\Delegator\ContentValueViewTagger'
+        arguments: ['@http_cache.response_tagger.content_info']
+        tags:
+            - {name: ezplatform.cache_response_tagger}
+
+    http_cache.response_tagger.content_info:
+        class: 'eZ\Publish\Core\MVC\Symfony\Cache\Http\ResponseTagger\Value\ContentInfoTagger'
+        tags:
+            - {name: ezplatform.cache_response_tagger}
+
+    http_cache.response_tagger.location:
+        class: 'eZ\Publish\Core\MVC\Symfony\Cache\Http\ResponseTagger\Value\LocationTagger'
+        arguments: ['@http_cache.response_tagger.content_info']
+        tags:
+            - {name: ezplatform.cache_response_tagger}
+
+    http_cache.response_tagger.relation:
+        class: 'eZ\Publish\Core\MVC\Symfony\Cache\Http\ResponseTagger\Value\RelationValueTagger'
+        tags:
+            - {name: ezplatform.cache_response_tagger}

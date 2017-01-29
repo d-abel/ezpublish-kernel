@@ -302,6 +302,9 @@ services:
             - $content.default_ttl$
         tags:
             - { name: kernel.event_subscriber }
+        calls:
+            - [setConfigurator, ['@ezplatform.http_cache.response_configurator']]
+            - [setDispatcherTagger, ['@ezplatform.http_cache.response_tagger.dispatcher']]
 
     ezpublish.view.block_cache_response_listener:
         class: "%ezpublish.view.block_cache_response_listener.class%"
